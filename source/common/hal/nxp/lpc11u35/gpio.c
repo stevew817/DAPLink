@@ -55,6 +55,11 @@ void gpio_init(void) {
       LPC_IOCON->TDI_PIO0_11 |= 0x01;
     LPC_GPIO->DIR[0]  |= (PIN_CDC_LED);
     LPC_GPIO->CLR[0]  |= (PIN_CDC_LED);
+	
+	  //configure SWCLK as output
+		LPC_IOCON->SWCLK_PIO0_10 = 0x0 | (2 << 3) | 0x1;
+	  LPC_GPIO->DIR[0]  |= (1 << 10);
+    LPC_GPIO->SET[0]  |= (1 << 10);
 
     // configure Button as input
 #if SW_RESET_BUTTON

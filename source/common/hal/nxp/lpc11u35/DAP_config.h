@@ -34,11 +34,6 @@ Provides definitions about:
 
 // Board configuration options
 
-// Configure nReset as open drain
-#if defined(BOARD_UBLOX_C027)
-#define CONF_OPENDRAIN
-#endif
-
 // Configure JTAG option
 #if defined(BOARD_BAMBINO_210) || defined(BOARD_BAMBINO_210E)
 // LPC43xx multicore targets require JTAG to debug slave cores
@@ -112,25 +107,24 @@ Provides definitions about:
 #define FUNC_1					1
 #define PULL_DOWN_ENABLED		(1 << 3)
 #define PULL_UP_ENABLED			(2 << 3)
-#define OPENDRAIN				(1 << 10)
 
 // Debug Port I/O Pins
 // For LPC11Uxx DAPs all SWD and JTAG pins are on GPIO port 0
 // Default is mbed HDK reference design with LPC11U35/501
-// SWCLK/TCK Pin                PIO0_7
-#define PIN_SWCLK_IN_BIT        7
+// SWCLK/TCK Pin                PIO0_9
+#define PIN_SWCLK_IN_BIT        9
 #define PIN_SWCLK               (1 << PIN_SWCLK_IN_BIT)
-#define PIN_SWCLK_TCK_IOCON     LPC_IOCON->PIO0_7
+#define PIN_SWCLK_TCK_IOCON     LPC_IOCON->PIO0_9
 
 // SWDIO/TMS In/Out Pin         PIO0_8
 #define PIN_SWDIO_IN_BIT        8
 #define PIN_SWDIO               (1 << PIN_SWDIO_IN_BIT)
 #define PIN_SWDIO_TMS_IOCON     LPC_IOCON->PIO0_8
 
-// nRESET Pin                   PIO0_2
-#define PIN_nRESET_IN_BIT       2
+// nRESET Pin                   PIO0_10
+#define PIN_nRESET_IN_BIT       10
 #define PIN_nRESET              (1 << PIN_nRESET_IN_BIT)
-#define PIN_nRESET_IOCON        LPC_IOCON->PIO0_2
+#define PIN_nRESET_IOCON        LPC_IOCON->SWCLK_PIO0_10
 
 #if (DAP_JTAG != 0)
 
@@ -204,15 +198,8 @@ Configures the DAP Hardware I/O pins for Serial Wire Debug (SWD) mode:
 static __inline void PORT_SWD_SETUP (void) {
     LPC_GPIO->SET[0] = PIN_SWCLK;
     LPC_GPIO->SET[0] = PIN_SWDIO;
-#if defined(CONF_OPENDRAIN)
-    // open drain logic
-    LPC_GPIO->DIR[0] &= ~PIN_nRESET;
-    LPC_GPIO->CLR[0]  =  PIN_nRESET; 
-    LPC_GPIO->DIR[0] |= (PIN_SWCLK | PIN_SWDIO);
-#else
-    LPC_GPIO->SET[0] = PIN_nRESET;
+    LPC_GPIO->SET[0] = (PIN_SWCLK | PIN_SWDIO | PIN_nRESET);
     LPC_GPIO->DIR[0]  |= (PIN_SWCLK | PIN_SWDIO | PIN_nRESET);
-#endif
 }
 
 /** Disable JTAG/SWD I/O Pins.
@@ -222,15 +209,8 @@ Disables the DAP Hardware I/O pins which configures:
 static __inline void PORT_OFF (void) {
     LPC_GPIO->CLR[0] = PIN_SWCLK;
     LPC_GPIO->CLR[0] = PIN_SWDIO;
-#if defined(CONF_OPENDRAIN)
-    // open drain logic
-    LPC_GPIO->DIR[0] &= ~PIN_nRESET; // reset not an output
-    LPC_GPIO->CLR[0]  =  PIN_nRESET;
-    LPC_GPIO->DIR[0] |= (PIN_SWCLK | PIN_SWDIO); 
-#else
     LPC_GPIO->SET[0] = PIN_nRESET;
     LPC_GPIO->DIR[0] |= (PIN_SWCLK | PIN_SWDIO | PIN_nRESET);
-#endif
 }
 
 
@@ -390,16 +370,10 @@ static __forceinline uint32_t PIN_nRESET_IN  (void) {
            - 1: release device hardware reset.
 */
 static __forceinline void     PIN_nRESET_OUT (uint32_t bit) {
-#if defined(CONF_OPENDRAIN)
-    // open drain logic
-    if (bit) LPC_GPIO->DIR[0] &= ~PIN_nRESET; // input (pulled high external)
-    else     LPC_GPIO->DIR[0] |=  PIN_nRESET; // output (low)
-#else
     if (bit)
         LPC_GPIO->SET[0] = (PIN_nRESET);
     else
         LPC_GPIO->CLR[0] = (PIN_nRESET);
-#endif
 }
 
 ///@}
@@ -459,11 +433,8 @@ static __inline void DAP_SETUP (void) {
     // Configure I/O pins
 	PIN_SWCLK_TCK_IOCON = FUNC_0 | PULL_UP_ENABLED;  // SWCLK/TCK
 	PIN_SWDIO_TMS_IOCON = FUNC_0 | PULL_UP_ENABLED;  // SWDIO/TMS
-#if !defined(CONF_OPENDRAIN)
-	PIN_nRESET_IOCON    = FUNC_0 | PULL_UP_ENABLED;  // nRESET
-#else
-	PIN_nRESET_IOCON    = FUNC_0 | OPENDRAIN;        // nRESET
-#endif
+	PIN_nRESET_IOCON    = FUNC_0 | PULL_UP_ENABLED | 0x1;  // nRESET
+
 #if (DAP_JTAG != 0)
 	PIN_TDI_IOCON       = FUNC_0 | PULL_UP_ENABLED;  // TDI
 	PIN_TDO_IOCON       = FUNC_0 | PULL_UP_ENABLED;  // TDO
