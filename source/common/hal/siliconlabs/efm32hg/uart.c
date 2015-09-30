@@ -17,7 +17,7 @@
 #include "uart.h"
 #include "IO_Config.h"
 #include "string.h"
-#include "em_leuart.h"
+#include "em_usart.h"
 #include "em_cmu.h"
 #include "em_gpio.h"
 
@@ -53,12 +53,10 @@ void serial_baud(uint32_t baudrate);
 
 int32_t uart_initialize(void)
 {
-    // enable clock to uart
-    CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_CORELEDIV2);
-    CMU_ClockEnable(cmuClock_LFB, true);
+    // enable clock to uart (HFPERCLK should already have the right selection)
     CMU_ClockEnable(UART_CLK, true);
   
-    LEUART_Reset(UART);
+    USART_Reset(UART);
     // set output location
     UART->ROUTE = (UART->ROUTE & _LEUART_ROUTE_LOCATION_MASK) | UART_LOC;
   
@@ -69,8 +67,8 @@ int32_t uart_initialize(void)
 
 int32_t uart_uninitialize(void)
 {
-    LEUART_IntDisable(UART, LEUART_IF_TXBL | LEUART_IF_RXDATAV);
-    LEUART_Enable(UART, leuartDisable);
+    USART_IntDisable(UART, USART_IF_TXBL | USART_IF_RXDATAV);
+    USART_Enable(UART, usartDisable);
     
     clear_buffers();
     tx_in_progress = 0;
@@ -80,17 +78,15 @@ int32_t uart_uninitialize(void)
 int32_t uart_reset(void)
 {
     resetted = 1;
-  
-    // enable clock to uart
-    CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_CORELEDIV2);
-    CMU_ClockEnable(cmuClock_LFB, true);
+
+    // enable clock to uart (HFPERCLK should already have the right selection)
     CMU_ClockEnable(UART_CLK, true);
   
     // disable interrupt
-    LEUART_IntDisable(UART, LEUART_IF_TXBL);
-    LEUART_Reset(UART);
+    USART_IntDisable(UART, USART_IF_TXBL | USART_IF_RXDATAV);
+    USART_Reset(UART);
     // set output location
-    UART->ROUTE = (UART->ROUTE & _LEUART_ROUTE_LOCATION_MASK) | UART_LOC;
+    UART->ROUTE = (UART->ROUTE & _USART_ROUTE_LOCATION_MASK) | UART_LOC;
     // reset function
     clear_buffers();
     tx_in_progress = 0;
@@ -98,94 +94,59 @@ int32_t uart_reset(void)
     return 1;
 }
 
-/* Set baudrate to requested value and adjust clocks */
-/* Assumes there's a 32.768kHz LFXO */
-void serial_baud(uint32_t baudrate) {
-  /* check if baudrate is within allowed range */
-  EFM_ASSERT(baudrate >= (UART_LF_REF_FREQ >> 7));
-
-  if(baudrate > (UART_LF_REF_FREQ >> 1)){
-      /* check if baudrate is within allowed range */
-      EFM_ASSERT((baudrate <= (UART_HF_REF_FREQ >> 1)) && (baudrate > (UART_HF_REF_FREQ >> 10)));
-
-      CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_CORELEDIV2);
-      CMU_ClockEnable(cmuClock_LFB, true);
-      CMU_ClockSelectSet(UART_CLK, cmuSelect_CORELEDIV2);
-      uint8_t divisor = 1;
-
-      if(baudrate > (UART_HF_REF_FREQ >> 7)){
-          divisor = 1;
-      }else if(baudrate > (UART_HF_REF_FREQ >> 8)){
-          divisor = 2;
-      }else if(baudrate > (UART_HF_REF_FREQ >> 9)){
-          divisor = 4;
-      }else{
-          divisor = 8;
-      }
-      CMU_ClockDivSet(UART_CLK, divisor);
-      LEUART_BaudrateSet(UART, UART_HF_REF_FREQ/divisor, (uint32_t)baudrate);
-  } else {
-      CMU_ClockSelectSet(cmuClock_LFB, cmuSelect_LFXO);
-      CMU_ClockEnable(cmuClock_LFB, true);
-      CMU_ClockDivSet(UART_CLK, 1);
-      LEUART_BaudrateSet(UART, UART_LF_REF_FREQ, (uint32_t)baudrate);
-  }
-}
-
 int32_t uart_set_configuration(UART_Configuration *config)
 {
-    LEUART_Init_TypeDef internal_config = LEUART_INIT_DEFAULT;
+    USART_InitAsync_TypeDef internal_config = USART_INITASYNC_DEFAULT;
     // disable interrupt
     clear_buffers();
     
     switch(config->DataBits) {
       case UART_DATA_BITS_8:
       default:
-        internal_config.databits = leuartDatabits8;
+        internal_config.databits = usartDatabits8;
         break;
     }
     
     switch(config->Parity) {
       case UART_PARITY_ODD:
-        internal_config.parity = leuartOddParity;
+        internal_config.parity = usartOddParity;
         break;
       case UART_PARITY_EVEN:
-        internal_config.parity = leuartEvenParity;
+        internal_config.parity = usartEvenParity;
         break;
       case UART_PARITY_NONE:
       default:
-        internal_config.parity = leuartNoParity;
+        internal_config.parity = usartNoParity;
         break;
     }
     
     switch(config->StopBits) {
       case UART_STOP_BITS_1_5:
-        internal_config.stopbits = leuartStopbits1;
+        internal_config.stopbits = usartStopbits1;
         break;
       case UART_STOP_BITS_2:
-        internal_config.stopbits = leuartStopbits2;
+        internal_config.stopbits = usartStopbits2;
         break;
       case UART_STOP_BITS_1:
       default:
-        internal_config.stopbits = leuartStopbits1;
+        internal_config.stopbits = usartStopbits1;
         break;
     }
     
-    internal_config.enable = leuartDisable;
+    internal_config.enable = usartDisable;
     internal_config.baudrate = config->Baudrate;
     
-    LEUART_Reset(UART);
-    LEUART_Init(UART, &internal_config);
-    serial_baud(internal_config.baudrate);
+    USART_Reset(UART);
+    USART_InitAsync(UART, &internal_config);
     
     if(resetted == 0) {
     
-      LEUART_Enable(UART, leuartEnable);
+      USART_Enable(UART, usartEnable);
       
       // Enable UART interrupt
-      NVIC_ClearPendingIRQ(UART_RX_TX_IRQn);
-      NVIC_EnableIRQ(UART_RX_TX_IRQn);
-      LEUART_IntEnable(UART, LEUART_IEN_RXDATAV);
+      NVIC_EnableIRQ(UART_RX_IRQn);
+			NVIC_EnableIRQ(UART_TX_IRQn);
+      USART_IntEnable(UART, USART_IEN_RXDATAV);
       
       // enable GPIO pins used by leuart
       CMU_ClockEnable(cmuClock_GPIO, true);
@@ -226,14 +187,14 @@ int32_t uart_write_data (uint8_t *data, uint16_t size)
     }
     if (!tx_in_progress) {
         // Wait for D register to be free
-        while(!(LEUART_StatusGet(UART) & LEUART_STATUS_TXBL));
+        while(!(USART_StatusGet(UART) & USART_STATUS_TXBL));
         tx_in_progress = 1;
         // Write the first byte into D
-        LEUART_Tx(UART, write_buffer.data[write_buffer.idx_out++]);
+        USART_Tx(UART, write_buffer.data[write_buffer.idx_out++]);
         write_buffer.idx_out &= (UART_BUFFER_SIZE - 1);
         write_buffer.cnt_out++;
         // enable TX interrupt
-        LEUART_IntEnable(UART, LEUART_IEN_TXBL);
+        USART_IntEnable(UART, USART_IEN_TXBL);
     }
     return cnt;
 }
@@ -259,28 +220,35 @@ int32_t uart_read_data(uint8_t *data, uint16_t size)
     return cnt;
 }
 
-void UART_RX_TX_IRQHandler(void)
+void UART_TX_IRQHandler(void)
 {
     uint32_t status;
     // read interrupt status
-    status = LEUART_IntGet(UART);
+    status = USART_IntGet(UART);
     // handle character to transmit
     if (write_buffer.cnt_in != write_buffer.cnt_out) {
         // if TDRE is empty
-        if (status & LEUART_IF_TXBL) {
-            LEUART_Tx(UART, write_buffer.data[write_buffer.idx_out++]);
+        if (status & USART_IF_TXBL) {
+            USART_Tx(UART, write_buffer.data[write_buffer.idx_out++]);
             write_buffer.idx_out &= (UART_BUFFER_SIZE - 1);
             write_buffer.cnt_out++;
             tx_in_progress = 1;
         }
     } else {
         // disable TX interrupt
-        LEUART_IntDisable(UART, LEUART_IEN_TXBL);
+        USART_IntDisable(UART, USART_IEN_TXBL);
         tx_in_progress = 0;
     }
+}
+
+void UART_RX_IRQHandler(void)
+{
+    uint32_t status;
+    // read interrupt status
+    status = USART_IntGet(UART);
     // handle received character
-    if (status & LEUART_IF_RXDATAV) {
-        read_buffer.data[read_buffer.idx_in++] = LEUART_Rx(UART);
+    if (status & USART_IF_RXDATAV) {
+        read_buffer.data[read_buffer.idx_in++] = USART_Rx(UART);
         read_buffer.idx_in &= (UART_BUFFER_SIZE - 1);
         read_buffer.cnt_in++;
     }

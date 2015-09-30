@@ -21,34 +21,34 @@
 
 // Debug Port I/O Pins
 
-// SWCLK Pin                    PE12
-#define PIN_SWCLK_PORT          gpioPortE
+// SWCLK Pin                    PD4
+#define PIN_SWCLK_PORT          gpioPortD
 //MODEL or MODEH depending on BIT
-#define PIN_SWCLK_MODE          MODEH
-#define PIN_SWCLK_GPIO          (4)
-#define PIN_SWCLK_BIT           (12)
+#define PIN_SWCLK_MODE          MODEL
+#define PIN_SWCLK_GPIO          (3)
+#define PIN_SWCLK_BIT           (4)
 //_N is normalized bit (AND with 0xF)
 #define PIN_SWCLK_BIT_N         (4)
 #define PIN_SWCLK               (1<<PIN_SWCLK_BIT)
 
-// SWDIO Pin                    PE10
-#define PIN_SWDIO_PORT          gpioPortE
+// SWDIO Pin                    PD5
+#define PIN_SWDIO_PORT          gpioPortD
 //MODEL or MODEH depending on BIT
-#define PIN_SWDIO_MODE          MODEH
-#define PIN_SWDIO_GPIO          (4)
-#define PIN_SWDIO_BIT           (10)
+#define PIN_SWDIO_MODE          MODEL
+#define PIN_SWDIO_GPIO          (3)
+#define PIN_SWDIO_BIT           (5)
 //_N is normalized bit (AND with 0xF)
-#define PIN_SWDIO_BIT_N         (2)
+#define PIN_SWDIO_BIT_N         (5)
 #define PIN_SWDIO               (1<<PIN_SWDIO_BIT)
 
-// nRESET Pin                   PE13
-#define PIN_nRESET_PORT         gpioPortE
+// nRESET Pin                   PD6
+#define PIN_nRESET_PORT         gpioPortD
 //MODEL or MODEH depending on BIT
-#define PIN_nRESET_MODE         MODEH
-#define PIN_nRESET_GPIO         (4)
-#define PIN_nRESET_BIT          (13)
+#define PIN_nRESET_MODE         MODEL
+#define PIN_nRESET_GPIO         (3)
+#define PIN_nRESET_BIT          (6)
 //_N is normalized bit (AND with 0xF)
-#define PIN_nRESET_BIT_N        (5)
+#define PIN_nRESET_BIT_N        (6)
 #define PIN_nRESET              (1<<PIN_nRESET_BIT)
 
 // Debug Unit LEDs
@@ -86,30 +86,31 @@
 #define ENABLE_USB_IRQ()        NVIC_EnableIRQ(USB_IRQn)
 
 // UART
-#define UART_NAME               (LEUART0)
-// RX PD5
-#define PIN_UART_RX_PORT				gpioPortD
-#define PIN_UART_RX_MODE        MODEL
-#define PIN_UART_RX_GPIO        (3)
-#define PIN_UART_RX_BIT         (5)
-#define PIN_UART_RX_BIT_N       (5)
+#define UART_NAME               (USART0)
+// RX PE11
+#define PIN_UART_RX_PORT		gpioPortE
+#define PIN_UART_RX_MODE        MODEH
+#define PIN_UART_RX_GPIO        (4)
+#define PIN_UART_RX_BIT         (11)
+#define PIN_UART_RX_BIT_N       (3)
 #define PIN_UART_RX             (1<<PIN_UART_RX_BIT)
-// TX PD4
-#define PIN_UART_TX_PORT				gpioPortD
-#define PIN_UART_TX_MODE        MODEL
-#define PIN_UART_TX_GPIO        (3)
-#define PIN_UART_TX_BIT         (4)
-#define PIN_UART_TX_BIT_N       (4)
+// TX PE10
+#define PIN_UART_TX_PORT		gpioPortE
+#define PIN_UART_TX_MODE        MODEH
+#define PIN_UART_TX_GPIO        (4)
+#define PIN_UART_TX_BIT         (10)
+#define PIN_UART_TX_BIT_N       (2)
 #define PIN_UART_TX             (1<<PIN_UART_TX_BIT)
 
-#define UART_LOC                LEUART_ROUTE_LOCATION_LOC0
+#define UART_LOC                USART_ROUTE_LOCATION_LOC0
 
-#define UART                    LEUART0
-#define UART_LF_REF_FREQ        (32768u)
+#define UART                    USART0
 #define UART_HF_REF_FREQ        (24000000u)
-#define UART_CLK                cmuClock_LEUART0
-#define UART_RX_TX_IRQn         LEUART0_IRQn
-#define UART_RX_TX_IRQHandler   LEUART0_IRQHandler
+#define UART_CLK                cmuClock_USART0
+#define UART_RX_IRQn            USART0_RX_IRQn
+#define UART_RX_IRQHandler      USART0_RX_IRQHandler
+#define UART_TX_IRQn            USART0_TX_IRQn
+#define UART_TX_IRQHandler      USART0_TX_IRQHandler
 
 
 // GPIO macros

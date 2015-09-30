@@ -177,11 +177,18 @@ void          USBD_IntrEna (void) {
  */
 
 void USBD_Init (void) {
-  /* Devices supporting crystal-less USB can use HFRCO or HFXO as core clock. */
-  /* All other devices must use HFXO as core clock.                           */
-  if ( CMU_ClockSelectGet( cmuClock_HF ) != cmuSelect_HFXO )
+  //Set up the clocks in the Happy Gecko
+  //
+  // * USHFRCO set to 48MHz and auto-calibrated to the USB line
+  // * LFRCO drives the LF clock tree
+  // * USHFRCO / 2 drives the core (core @ 24MHz)
+  // * CoreCLK drives the peripheral clock (HFPERCLK @ 24MHz), needs to be as high as possible for GPIO
+  
+  CMU->USHFRCOCONF = CMU_USHFRCOCONF_BAND_48MHZ;
+  CMU_OscillatorEnable(cmuOsc_USHFRCO, true, true);
+  if ( CMU_ClockSelectGet( cmuClock_HF ) != cmuSelect_USHFRCODIV2 )
   {
-    CMU_ClockSelectSet( cmuClock_HF, cmuSelect_HFXO );
+    CMU_ClockSelectSet( cmuClock_HF, cmuSelect_USHFRCODIV2 );
   }
 	
 	//Enable clock to USB system part
@@ -193,20 +200,16 @@ void USBD_Init (void) {
 	//Enable PHY pins
 	USB->ROUTE = USB_ROUTE_PHYPEN;
 	
-	//Enable LFXO reference for USB core
-	CMU_OscillatorEnable(cmuOsc_LFXO,true,true);
+	//Enable USHFRCO reference for USB core
 	CMU_ClockEnable(cmuClock_USBC, true);
-	CMU_ClockSelectSet(cmuClock_USBC, cmuSelect_LFXO);
+	CMU_ClockSelectSet(cmuClock_USBC, cmuSelect_USHFRCO);
 	CMU_ClockEnable(cmuClock_USBC, true);
 	
 
   CMU_ClockEnable(cmuClock_CORELE, true);
   /* LFC clock is needed to detect USB suspend when LEMIDLE is activated. */
-  CMU_ClockSelectSet(cmuClock_LFC, cmuSelect_LFXO);
+  CMU_ClockSelectSet(cmuClock_LFC, cmuSelect_LFRCO);
 	CMU_ClockEnable(cmuClock_USBLE, true);
-	
-	CMU->USHFRCOCONF = CMU_USHFRCOCONF_BAND_48MHZ;
-  CMU_ClockSelectSet( cmuClock_USBC, cmuSelect_USHFRCO );
 
   /* Enable USHFRCO Clock Recovery mode. */
   CMU->USBCRCTRL |= CMU_USBCRCTRL_EN;
@@ -217,8 +220,9 @@ void USBD_Init (void) {
               | USB_CTRL_LEMPHYCTRL;
 							
 	while ((USB->GRSTCTL & USB_GRSTCTL_AHBIDLE) == 0U);
-
-	USB->GRSTCTL  |=  USB_GRSTCTL_CSFTRST;            // Core soft reset
+  
+  // Core soft reset
+	USB->GRSTCTL  |=  USB_GRSTCTL_CSFTRST;
 	while ((USB->GRSTCTL & USB_GRSTCTL_CSFTRST) != 0U);
 	generic_delay (10);
 

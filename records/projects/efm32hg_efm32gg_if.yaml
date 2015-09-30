@@ -17,7 +17,7 @@ common:
         - source/common/hal/siliconlabs/efm32hg
         - source/common/hal/siliconlabs/emlib/src
     debugger:
-        - cmsis-dap
+        - j-link
 
 tool_specific:
     uvision:
