@@ -117,9 +117,11 @@
             GPIO->P[port].MODEL = (GPIO->P[port].MODEL & ~((uint32_t)0xF << (pin * 4))) | ((uint32_t)mode << (pin * 4))
 #define GPIO_SET_MODEH(port, pin, mode)      \
             GPIO->P[port].MODEH = (GPIO->P[port].MODEL & ~((uint32_t)0xF << ((pin - 8) * 4))) | ((uint32_t)mode << ((pin - 8) * 4))
-            
+
+#define GPIO_MODE_INPUT         (0x1)
 #define GPIO_MODE_INPUTPULL     (0x2)
 #define GPIO_MODE_OUTPUT        (0x4)
+#define GPIO_MODE_OUTPUTDRIVE   (0x5)
 #define GPIO_MODE_DISABLED      (0x0)
 
 #endif
